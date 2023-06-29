@@ -1,0 +1,24 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - npm install
+      - npm install -g @quasar/cli
+      - apt-get update -y
+  pre_build:
+    commands:
+      - echo Pre_build Phase
+      - npm ci
+      - echo "$(hostname -i) local" >> /etc/hosts
+      - cat /etc/hosts
+  build:
+    commands:
+      - echo Build Phase
+      - quasar build
+  post_build:
+    commands:
+      - aws cloudfront create-invalidation --distribution-id E38PYBVO6WWGX --paths "/*"
+  artifacts:
+    files:
+      - 'dist/spa/**/*'

@@ -226,6 +226,11 @@ resource "aws_s3_bucket" "codepipeline_bucket" {
   bucket = "${local.bucket_name}-artifact"
 }
 
+resource "aws_codestarconnections_connection" "codestar_github" {
+  name          = "example-connection"
+  provider_type = "GitHub"
+}
+
 resource "aws_codepipeline" "pipeline" {
   name     = "${local.bucket_name}-pipeline"
   role_arn = aws_iam_role.codepipeline_role.arn
@@ -242,16 +247,14 @@ resource "aws_codepipeline" "pipeline" {
     action {
       name             = "Source"
       category         = "Source"
-      owner            = "ThirdParty"
-      provider         = "GitHub"
+      owner            = "AWS"
+      provider         = "CodeStarSourceConnection"
       version          = "1"
       output_artifacts = ["source_output"]
-
       configuration = {
-        Owner  = local.github_owner
-        Repo   = local.github_repo
-        Branch = local.github_branch
-        OAuthToken = local.github_token
+        ConnectionArn    = aws_codestarconnections_connection.codestar_github.arn
+        FullRepositoryId = "${var.github_user}/${var.github_repo}"
+        BranchName       = "main"
       }
     }
   }

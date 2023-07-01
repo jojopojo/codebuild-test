@@ -252,9 +252,10 @@ resource "aws_codepipeline" "pipeline" {
       version          = "1"
       output_artifacts = ["source_output"]
       configuration = {
-        ConnectionArn    = aws_codestarconnections_connection.codestar_github.arn
         FullRepositoryId = "${var.github_user}/${var.github_repo}"
-        BranchName       = "main"
+        BranchName   = "${var.github_branch}"
+        ConnectionArn = var.codestar_arn
+        OutputArtifactFormat = "CODE_ZIP"
       }
     }
   }
@@ -361,6 +362,32 @@ resource "aws_iam_role" "codebuild_role" {
 EOF
 }
 
+data "aws_iam_policy_document" "pipeline-policies" {
+    statement{
+        sid = ""
+        actions = ["codestar-connections:UseConnection"]
+        resources = ["*"]
+        effect = "Allow"
+    }
+    statement{
+        sid = ""
+        actions = ["cloudwatch:*", "s3:*", "codebuild:*"]
+        resources = ["*"]
+        effect = "Allow"
+    }
+}
+
+resource "aws_iam_policy" "pipeline-policy" {
+    name = "pipeline-policy"
+    path = "/"
+    description = "Pipeline policy"
+    policy = data.aws_iam_policy_document.pipeline-policies.json
+}
+
+resource "aws_iam_role_policy_attachment" "pipeline-attachment" {
+    policy_arn = aws_iam_policy.pipeline-policy.arn
+    role = aws_iam_role.codepipeline_role.id
+}
 
 resource "aws_iam_policy" "codebuild_s3_access" {
   name        = "CodeBuildS3Access"

@@ -38,3 +38,11 @@ variable "bucket_name" {
   description = "Name for output bucket"
   type        = string
 }
+variable "codestar_arn" {
+  description = "Name for output bucket"
+  type        = string
+}
+variable "codestar_id" {
+  description = "Name for output bucket"
+  type        = string
+}

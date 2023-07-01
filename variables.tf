@@ -39,10 +39,10 @@ variable "bucket_name" {
   type        = string
 }
 variable "codestar_arn" {
-  description = "Name for output bucket"
+  description = "Codestar arn (connection to GitHub)"
   type        = string
 }
 variable "codestar_id" {
-  description = "Name for output bucket"
+  description = "Codestar id"
   type        = string
 }

@@ -1,9 +1,13 @@
 version: 0.2
 
 env:
+  shell:
+    - /bin/bash
+    - -e
+    - -o pipefail
   variables:
-    CLOUDFRONT_DISTRIBUTION_ID: "E38PYBVO6WWGX"
-    WEB_RELEASE_BUCKET: "hello-world-web-dev"
+    PRJ_NAME="codebuild-test"
+
 phases:
   install:
 #    runtime-versions:
@@ -13,6 +17,8 @@ phases:
       - npm install
       - npm install -g @quasar/cli
       - apt-get update -y
+      - RELEASE_BUCKET=$(aws ssm get-parameter --name "/${PRJ_NAME}/release_bucket" --query "Parameter.Value" --output text)}
+      - CLOUDFRONT_DISTRIBUTION_ID=$(aws ssm get-parameter --name "/${PRJ_NAME}/cloudfront_dist_id" --query "Parameter.Value" --output text)}
   pre_build:
     commands:
       - echo Pre_build Phase
@@ -25,9 +31,5 @@ phases:
       - quasar build
   post_build:
     commands:
-      - aws s3 sync dist/spa s3://${WEB_RELEASE_BUCKET} --delete
+      - aws s3 sync dist/spa s3://${RELEASE_BUCKET} --delete
       - aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DISTRIBUTION_ID} --paths "/*"
-artifacts:
-  files:
-    - '**/*'
-  base-directory: 'dist/spa'

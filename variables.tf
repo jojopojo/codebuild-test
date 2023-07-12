@@ -1,14 +1,14 @@
-variable "aws_access_key" {
+variable "aws_access_key_id" {
   description = "The AWS access key"
   type        = string
   sensitive   = true
 }
-variable "aws_secret_key" {
+variable "aws_secret_access_key" {
   description = "The AWS secret key"
   type        = string
   sensitive   = true
 }
-variable "aws_token" {
+variable "aws_session_token" {
   description = "The AWS token"
   type        = string
   sensitive   = true
@@ -20,11 +20,6 @@ variable "github_user" {
 variable "github_repo" {
   description = "github repo"
   type        = string
-}
-variable "github_token" {
-  description = "github token"
-  type        = string
-  sensitive   = true
 }
 variable "github_branch" {
   description = "Name for output bucket"

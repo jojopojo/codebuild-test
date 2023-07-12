@@ -25,14 +25,6 @@ variable "github_branch" {
   description = "Name for output bucket"
   type        = string
 }
-variable "codepipeline_name" {
-  description = "Name for Codepipeline"
-  type        = string
-}
-variable "bucket_name" {
-  description = "Name for output bucket"
-  type        = string
-}
 variable "codestar_arn" {
   description = "Codestar arn (connection to GitHub)"
   type        = string

@@ -17,7 +17,7 @@ locals {
   aws_access_key_id     = var.aws_access_key_id
   aws_secret_access_key = var.aws_secret_access_key
   aws_session_token     = var.aws_session_token
-  bucket_name           = "codebuild-test"
+  bucket_name           = "${var.prj_name}-82639"
 
   github_owner  = var.github_user
   github_repo   = var.github_repo
@@ -247,7 +247,7 @@ resource "aws_codestarconnections_connection" "codestar_github" {
 }
 
 resource "aws_codepipeline" "pipeline" {
-  name     = "${local.bucket_name}-pipeline"
+  name     = "${var.prj_name}_pipeline"
   role_arn = aws_iam_role.codepipeline_role.arn
 
   artifact_store {
@@ -341,7 +341,7 @@ resource "aws_codebuild_project" "code_build" {
 
 # IAM Role for CodePipeline
 resource "aws_iam_role" "codepipeline_role" {
-  name = "${var.codepipeline_name}_codepipeline_service_role"
+  name = "${var.prj_name}_codepipeline_service_role"
 
   assume_role_policy = <<EOF
 {
@@ -361,7 +361,7 @@ EOF
 
 # IAM Role for CodeBuild
 resource "aws_iam_role" "codebuild_role" {
-  name = "${var.codepipeline_name}_codebuild_service_role"
+  name = "${var.prj_name}_codebuild_service_role"
 
   assume_role_policy = <<EOF
 {
@@ -395,7 +395,7 @@ data "aws_iam_policy_document" "pipeline-policies" {
 }
 
 resource "aws_iam_policy" "pipeline-policy" {
-    name = "pipeline-policy"
+    name = "${var.prj_name}-pipeline-policy"
     path = "/"
     description = "Pipeline policy"
     policy = data.aws_iam_policy_document.pipeline-policies.json
@@ -407,7 +407,7 @@ resource "aws_iam_role_policy_attachment" "pipeline-attachment" {
 }
 
 resource "aws_iam_policy" "codebuild_s3_access" {
-  name        = "CodeBuildS3Access"
+  name        = "${var.prj_name}_CodeBuildS3Access"
   description = "Grant CodeBuild access to S3"
 
   policy = jsonencode({
@@ -434,7 +434,7 @@ resource "aws_iam_policy" "codebuild_s3_access" {
 }
 
 resource "aws_iam_policy" "codedeploy_s3_access" {
-  name        = "CodeDeployS3Access"
+  name        = "${var.prj_name}_CodeDeployS3Access"
   description = "Grant CodeDeploy access to S3"
 
   policy = jsonencode({

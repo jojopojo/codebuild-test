@@ -7,13 +7,27 @@ env:
     - -o pipefail
   variables:
     PRJ_NAME="codebuild-test"
-
+    DIRECTORY_TO_BUILD="blog"
 phases:
   install:
-#    runtime-versions:
-#      python: 3.9
     commands:
-#      - pip install -r requirements.txt
+      - echo Fetching Git metadata...
+      - CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r $CODEBUILD_RESOLVED_SOURCE_VERSION)
+      - echo "Files changed in this commit: $CHANGED_FILES"
+      - |
+        IGNORE_LIST=($(cat build-quasar-ignore.txt))
+        for file in $CHANGED_FILES
+        do
+          if [[ ${file} == ${DIRECTORY_TO_BUILD}/* && ! " ${IGNORE_LIST[@]} " =~ " ${file} " ]]; then
+            echo "File ${file} is not in the ignore list and is in the ${DIRECTORY_TO_BUILD}. Proceeding with build..."
+            PROCEED_BUILD="true"
+            break
+          fi
+        done
+        if [[ -z ${PROCEED_BUILD} ]]; then
+          echo "Only ignored files were modified or no changes in ${DIRECTORY_TO_BUILD}. Exiting build..."
+          exit 0
+        fi
       - npm install
       - npm install -g @quasar/cli
       - apt-get update -y
@@ -28,6 +42,7 @@ phases:
   build:
     commands:
       - echo Build Phase
+      - cd blog
       - quasar build
   post_build:
     commands:

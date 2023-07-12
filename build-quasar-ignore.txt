@@ -1,2 +1,7 @@
 README.md
 test-change-dir/*
+blog/.editorconfig
+blog/.eslintignore
+blog/.eslintrc.cjs
+blog/.npmrc
+blog/change-test.txt

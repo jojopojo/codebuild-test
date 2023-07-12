@@ -9,7 +9,7 @@ phases:
 #    runtime-versions:
 #      python: 3.9
     commands:
-      - pip install -r requirements.txt
+#      - pip install -r requirements.txt
       - npm install
       - npm install -g @quasar/cli
       - apt-get update -y

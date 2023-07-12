@@ -1,8 +1,15 @@
 version: 0.2
 
+env:
+  variables:
+    CLOUDFRONT_DISTRIBUTION_ID: "E38PYBVO6WWGX"
+    WEB_RELEASE_BUCKET: "hello-world-web-dev"
 phases:
   install:
+#    runtime-versions:
+#      python: 3.9
     commands:
+      - pip install -r requirements.txt
       - npm install
       - npm install -g @quasar/cli
       - apt-get update -y
@@ -18,7 +25,9 @@ phases:
       - quasar build
   post_build:
     commands:
-      - aws cloudfront create-invalidation --distribution-id E38PYBVO6WWGX --paths "/*"
-  artifacts:
-    files:
-      - 'dist/spa/**/*'
+      - aws s3 sync dist/spa s3://${WEB_RELEASE_BUCKET} --delete
+      - aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DISTRIBUTION_ID} --paths "/*"
+artifacts:
+  files:
+    - '**/*'
+  base-directory: 'dist/spa'

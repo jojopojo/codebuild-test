@@ -42,7 +42,8 @@ variable "codestar_arn" {
   description = "Codestar arn (connection to GitHub)"
   type        = string
 }
-variable "codestar_id" {
-  description = "Codestar id"
+variable "prj_name" {
+  description = "project name"
   type        = string
 }
+

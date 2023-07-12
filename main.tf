@@ -12,6 +12,7 @@ terraform {
   }
 }
 
+##temporary ->remove the locals and use vars directly
 locals {
   aws_access_key_id     = var.aws_access_key
   aws_secret_access_key = var.aws_secret_key
@@ -33,18 +34,22 @@ provider "aws" {
 
 ### S3 bucket for development release ###
 
-resource "aws_s3_bucket" "bucket" {
+resource "aws_s3_bucket" "release_bucket" {
   bucket = local.bucket_name  # Make sure the bucket name is globally unique
 
+  versioning {
+    enabled = true
+  }
+
   tags = {
-    Name = "blog-dev-bucket"
+    Name = "release bucket"
     Environment = "Dev"
   }
 
 }
 
 resource "aws_s3_bucket_policy" "s3_bucket_policy" {
-  bucket = aws_s3_bucket.bucket.id
+  bucket = aws_s3_bucket.release_bucket.id
   policy = jsonencode({
     Version: "2012-10-17",
     Id: "Policy",
@@ -68,6 +73,8 @@ resource "aws_s3_bucket_acl" "bucket_acl" {
     acl    = "private"
 }
 */
+
+/*
 ### Lambda@Edge to restrict website access ###
 
 provider "aws" {
@@ -78,7 +85,7 @@ provider "aws" {
   token      = local.aws_session_token
 }
 
-/*
+
 data "aws_iam_policy_document" "lambda_assume_role_policy" {
   provider = aws.us-east
   statement {
@@ -156,13 +163,13 @@ resource "aws_lambda_function" "edge_function" {
 ### CloudFront ###
 
 resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
-  comment = "OAI for ${local.bucket_name} bucket"
+  comment = "OAI for ${local.bucket_release} bucket"
 }
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
-    domain_name = aws_s3_bucket.bucket.bucket_regional_domain_name
-    origin_id   = aws_s3_bucket.bucket.id
+    domain_name = aws_s3_bucket.bucket_release.bucket_regional_domain_name
+    origin_id   = aws_s3_bucket.bucket_release.id
 
     s3_origin_config {
       origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
@@ -171,13 +178,13 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 
   enabled             = true
   is_ipv6_enabled     = true
-  comment             = "Cloudfront Distribution for ${local.bucket_name} bucket"
+  comment             = "Cloudfront Distribution for ${local.bucket_release} bucket"
   default_root_object = "index.html"
 
   default_cache_behavior {
     allowed_methods  = ["HEAD", "DELETE", "POST", "GET", "OPTIONS", "PUT", "PATCH"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = aws_s3_bucket.bucket.id
+    target_origin_id = aws_s3_bucket.bucket_release.id
 
     forwarded_values {
       query_string = false
@@ -206,7 +213,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   restrictions {
     geo_restriction {
       restriction_type = "whitelist"
-      locations        = ["FI" , "SE"]
+      locations        = ["FI"]
     }
   }
 
@@ -226,6 +233,7 @@ resource "aws_s3_bucket" "codepipeline_bucket" {
   bucket = "${local.bucket_name}-artifact"
 }
 
+## create at codepipeline > settings > connections (copy arn to use in pipeline stage)
 resource "aws_codestarconnections_connection" "codestar_github" {
   name          = "example-connection"
   provider_type = "GitHub"
@@ -234,7 +242,6 @@ resource "aws_codestarconnections_connection" "codestar_github" {
 resource "aws_codepipeline" "pipeline" {
   name     = "${local.bucket_name}-pipeline"
   role_arn = aws_iam_role.codepipeline_role.arn
-  # role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.bucket_name}-codepipeline-role"
 
   artifact_store {
     location = aws_s3_bucket.codepipeline_bucket.bucket
@@ -291,7 +298,7 @@ resource "aws_codepipeline" "pipeline" {
       version         = "1"
 
       configuration = {
-        BucketName = aws_s3_bucket.bucket.bucket
+        BucketName = aws_s3_bucket.bucket_release.bucket
         Extract    = "true"
       }
     }
@@ -299,14 +306,18 @@ resource "aws_codepipeline" "pipeline" {
 }
 
 resource "aws_codebuild_project" "code_build" {
-  name          = "${local.bucket_name}_codebuild"
+  name          = "${var.prj_name}_codebuild"
   description   = "builds project"
   build_timeout = "5"
   service_role  = aws_iam_role.codebuild_role.arn
-  # service_role  = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.bucket_name}-codebuild-role"
 
   artifacts {
-    type = "CODEPIPELINE"
+    # type = "CODEPIPELINE"
+    type            = "S3"
+    location        = aws_s3_bucket.bucket_artifact.bucket
+    path            = "/"
+    namespace_type  = "NONE"
+    packaging       = "ZIP"
   }
 
   environment {
@@ -404,11 +415,11 @@ resource "aws_iam_policy" "codebuild_s3_access" {
                 "s3:GetObject",
                 "s3:GetObjectVersion",
                 "s3:PutObject",
-                "s3:ListBucket"
+                "s3:ListBucket",
             ],
             "Resource": [
-                "arn:aws:s3:::${aws_s3_bucket.bucket.bucket}/*",
-                "arn:aws:s3:::${aws_s3_bucket.bucket.bucket}",
+                "arn:aws:s3:::${aws_s3_bucket.bucket_artifact.bucket}/*",
+                "arn:aws:s3:::${aws_s3_bucket.bucket_artifact.bucket}",
                 "arn:aws:s3:::${aws_s3_bucket.codepipeline_bucket.bucket}/*",
                 "arn:aws:s3:::${aws_s3_bucket.codepipeline_bucket.bucket}"
             ]
@@ -435,10 +446,10 @@ resource "aws_iam_policy" "codedeploy_s3_access" {
                 "s3:ListBucket"
             ],
             Resource: [
-                "arn:aws:s3:::${aws_s3_bucket.bucket.bucket}/*",
-                "arn:aws:s3:::${aws_s3_bucket.bucket.bucket}",
-                "arn:aws:s3:::${aws_s3_bucket.codepipeline_bucket.bucket}/*",
-                "arn:aws:s3:::${aws_s3_bucket.codepipeline_bucket.bucket}"
+                "arn:aws:s3:::${aws_s3_bucket.bucket_release.bucket}/*",
+                "arn:aws:s3:::${aws_s3_bucket.bucket_release.bucket}",
+                "arn:aws:s3:::${aws_s3_bucket.bucket_artifact.bucket}/*",
+                "arn:aws:s3:::${aws_s3_bucket.bucket_artifact.bucket}"
             ]
         }
     ]

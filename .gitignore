@@ -1,13 +1,14 @@
 .DS_Store
 .thumbs.db
 node_modules
-
 lambda_edge_auth.zip
 .vscode
-.terraform
 
-# Terraform tfvars
+# Terraform 
 terraform.tfvars
+.terraform
+terraform.tfstate
+terraform.tfstate.backup
 
 # Quasar core related directories
 .quasar
